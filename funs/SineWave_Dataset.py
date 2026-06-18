@@ -1,23 +1,24 @@
 from torch.utils.data import Dataset
+import torch
 
 class SineWave_DataSet(Dataset):
     def __init__(self):
-        self.sample_generator = data_generating
+        self.sample_generator = self.data_generating
 
-    def data_generating():
-        freq = torch.rand(1) * 10 + 1
+    def data_generating(self):
+        freq = torch.rand(1) * 20 + 1
         freq = torch.floor(freq)
 
-        coord = torch.linspace(0, 2 * torch.pi,  100)
+        coord = torch.linspace(0, 2 * torch.pi,  200)
         y = torch.sin(coord * freq)
 
-        if freq %2 == 0:
-            y_a = y[:50]
+        if freq.item() %2 == 0:
+            y_a = y[:100]
             y_a[y_a>0] = 1
             y_a[y_a<0] = -1
 
         else:
-            y_a = y[50:]
+            y_a = y[100:]
             y_a[y_a>0] = 1
             y_a[y_a<0] = -1
 
