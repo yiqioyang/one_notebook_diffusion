@@ -44,7 +44,11 @@ def add_noise_onestep(x_prev, t, noise_scheduler):
 
 
 def add_noise_from_zero(x0, t, noise_scheduler):
-    added_noise = torch.randn_like(x_prev)
-    xt = x0 * noise_scheduler["alpha_hats_sqrt"][t] + added_noise *  noise_scheduler["one_minus_alpha_hats_sqrt"][t]
+    added_noise = torch.randn_like(x0)
+    xt = x0 * noise_scheduler["alpha_hats_sqrt"][t].view(-1,1) + added_noise *  noise_scheduler["one_minus_alpha_hats_sqrt"][t].view(-1, 1)
 
-    return xt
+    return xt, added_noise
+
+
+
+
