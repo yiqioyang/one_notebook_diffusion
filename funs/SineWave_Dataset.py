@@ -45,7 +45,7 @@ class SineWave_DataSet(Dataset):
                 y_a[y_a>0] = 1
                 y_a[y_a<0] = -1
 
-        return freq_inp, y
+        return freq_inp, y.unsqueeze(0)
 
     def __len__(self):
         return 10000

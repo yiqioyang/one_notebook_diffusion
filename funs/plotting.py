@@ -54,7 +54,7 @@ def animate_forward_noise(
     interval=50,
     step=5
 ):
-    x = image.copy()
+    x = image.clone()
 
     # Handle batched or unbatched input
     if x.ndim == 1:
