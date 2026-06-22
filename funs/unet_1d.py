@@ -24,21 +24,25 @@ class ConditionEmbedding(nn.Module):
             nn.Linear(out_dim, out_dim),
         )
 
-    def forward(self, t: torch.Tensor, cond: torch.Tensor) -> torch.Tensor:
+    def forward(self, t: torch.Tensor, cond) -> torch.Tensor:
         # t: [B] int/long; cond: [B] or [B, 1]
         t = t.long().clamp(0, self.time_table.shape[0] - 1)
         t_emb = self.time_table[t]  # [B, t_dim]
         t_emb = self.time_proj(t_emb)
 
-        if cond.ndim == 1:
-            cond = cond.unsqueeze(-1)
-        c_emb = self.cond_proj(cond.float())
+        if cond is not None:
+            if cond.ndim == 1:
+                cond = cond.unsqueeze(-1)
+            c_emb = self.cond_proj(cond.float())
+            
+            return t_emb + c_emb
 
+        else:
+            return t_emb
         # Fuse by addition after separate projections.
-        return t_emb + c_emb
+    
 
-
-class ResBlock1D(nn.Module):
+class ResBlock1D_conditional(nn.Module):
     def __init__(self, in_ch: int, out_ch: int, emb_dim: int):
         super().__init__()
         self.conv1 = nn.Conv1d(in_ch, out_ch, kernel_size=3, padding=1)
@@ -50,16 +54,17 @@ class ResBlock1D(nn.Module):
         self.emb_proj = nn.Linear(emb_dim, out_ch)
         self.skip = nn.Conv1d(in_ch, out_ch, kernel_size=1) if in_ch != out_ch else nn.Identity()
 
-    def forward(self, x: torch.Tensor, emb: torch.Tensor) -> torch.Tensor:
+    def forward(self, x, emb) -> torch.Tensor:
+    
         h = self.conv1(x)
         h = self.norm1(h)
         h = h + self.emb_proj(emb).unsqueeze(-1)
+    
         h = self.act(h)
-
         h = self.conv2(h)
         h = self.norm2(h)
         h = self.act(h)
-
+    
         return h + self.skip(x)
 
 
@@ -94,21 +99,21 @@ class ConditionalUNet1D(nn.Module):
 
         # Encoder
         self.in_conv = nn.Conv1d(in_channels, base_channels, kernel_size=3, padding=1)
-        self.down1 = ResBlock1D(base_channels, base_channels, emb_dim)
+        self.down1 = ResBlock1D_conditional(base_channels, base_channels, emb_dim)
         self.pool1 = nn.Conv1d(base_channels, base_channels * 2, kernel_size=4, stride=2, padding=1)
 
-        self.down2 = ResBlock1D(base_channels * 2, base_channels * 2, emb_dim)
+        self.down2 = ResBlock1D_conditional(base_channels * 2, base_channels * 2, emb_dim)
         self.pool2 = nn.Conv1d(base_channels * 2, base_channels * 4, kernel_size=4, stride=2, padding=1)
 
         # Bottleneck
-        self.mid = ResBlock1D(base_channels * 4, base_channels * 4, emb_dim)
+        self.mid = ResBlock1D_conditional(base_channels * 4, base_channels * 4, emb_dim)
 
         # Decoder
         self.up2 = nn.ConvTranspose1d(base_channels * 4, base_channels * 2, kernel_size=4, stride=2, padding=1)
-        self.dec2 = ResBlock1D(base_channels * 4, base_channels * 2, emb_dim)
+        self.dec2 = ResBlock1D_conditional(base_channels * 4, base_channels * 2, emb_dim)
 
         self.up1 = nn.ConvTranspose1d(base_channels * 2, base_channels, kernel_size=4, stride=2, padding=1)
-        self.dec1 = ResBlock1D(base_channels * 2, base_channels, emb_dim)
+        self.dec1 = ResBlock1D_conditional(base_channels * 2, base_channels, emb_dim)
 
         self.out_conv = nn.Conv1d(base_channels, in_channels, kernel_size=3, padding=1)
 
@@ -116,6 +121,7 @@ class ConditionalUNet1D(nn.Module):
         emb = self.cond_embed(t, cond)
 
         x0 = self.in_conv(x)
+    
         x1 = self.down1(x0, emb)
         x2 = self.pool1(x1)
 
@@ -137,3 +143,9 @@ class ConditionalUNet1D(nn.Module):
         y1 = self.dec1(y1, emb)
 
         return self.out_conv(y1)
+
+
+
+
+
+

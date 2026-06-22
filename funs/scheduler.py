@@ -50,7 +50,7 @@ def add_noise_onestep_cum_sampler(x_0, t, scheduler_dict, no_samples = 1000):
     for _ in range(no_samples):
         x = x_0
         for i in range(t):
-            x = add_noise_onestep(x, i+1, scheduler_dict)
+            x = add_noise_onestep(x, i, scheduler_dict)
 
         output.append(x)
 
@@ -58,12 +58,35 @@ def add_noise_onestep_cum_sampler(x_0, t, scheduler_dict, no_samples = 1000):
 
 
 
-def add_noise_from_zero(x0, t, noise_dict):
+def add_noise_from_zero(x0, t, noise_dict, device = 'cpu'):
     added_noise = torch.randn_like(x0)
-    xt = x0 * noise_dict["alpha_hats_sqrt"][t].view(-1,1) + added_noise *  scheduler_dict["one_minus_alpha_hats_sqrt"][t].view(-1, 1)
+    xt = x0 * noise_dict["alpha_hats_sqrt"][t].view(-1,1) + added_noise *  noise_dict["one_minus_alpha_hats_sqrt"][t].view(-1, 1)
 
-    return xt, added_noise
-
-
+    return xt.to(device), added_noise.to(device)
 
 
+
+
+@torch.no_grad()
+def ddpm_sampler(sample_dim, n_sample, noise_dict, model, t_steps = 500, device = 'cpu'):
+    x_t = torch.randn(n_sample,1,sample_dim).to(device)
+
+    for i in reversed(range(t_steps)):
+        t = torch.full((n_sample,), i)
+        t = t.to(device)
+        pred_noise = model(x_t, t, None)
+        if i > 0:
+            post_var = (1 - noise_dict['alpha_hats'][i-1])/(1 - noise_dict['alpha_hats'][i]) * noise_dict['betas'][i]
+
+        mean_t = 1/noise_dict['alphas'][i].sqrt() * (x_t - (1 - noise_dict['alphas'][i])/(noise_dict['one_minus_alpha_hats_sqrt'][i]) * pred_noise)
+        step_wise_noise = torch.randn(n_sample,1,sample_dim).to(device)
+        
+        
+        if i > 0:
+            x_t = mean_t + post_var.sqrt() * step_wise_noise
+        else:
+            x_t = mean_t
+
+        
+    return x_t
+        

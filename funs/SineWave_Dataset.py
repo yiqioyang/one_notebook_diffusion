@@ -2,7 +2,7 @@ from torch.utils.data import Dataset
 import torch
 
 class SineWave_DataSet(Dataset):
-    def __init__(self, freq_max = 5):
+    def __init__(self, freq_max = 10):
         self.sample_generator = self.data_generating
         self.freq_max = freq_max
         self.sample_generating_given_freq = self.data_generating_given_freq
@@ -10,20 +10,24 @@ class SineWave_DataSet(Dataset):
     def data_generating(self):
         with torch.no_grad():
             freq = torch.rand(1) * self.freq_max
+
+            
             freq_int = torch.floor(freq)
 
+            #freq = freq_int   ###
+            
             coord = torch.linspace(0, 2 * torch.pi,  200)
             y = torch.sin(coord * freq)
 
-            if freq_int.item() %2 == 1:
-                y_a = y[:100]
-                y_a[y_a>0] = 1
-                y_a[y_a<0] = -1
+            # if freq_int.item() %2 == 1:
+            #     y_a = y[:100]
+            #     y_a[y_a>0] = 1
+            #     y_a[y_a<0] = -1
 
-            else:
-                y_a = y[100:]
-                y_a[y_a>0] = 1
-                y_a[y_a<0] = -1
+            # else:
+            #     y_a = y[100:]
+            #     y_a[y_a>0] = 1
+            #     y_a[y_a<0] = -1
 
         return freq, y
     
@@ -32,18 +36,20 @@ class SineWave_DataSet(Dataset):
             
             freq_inp_int = torch.floor(freq_inp)
 
+            #freq_inp = freq_inp_int ###
+            
             coord = torch.linspace(0, 2 * torch.pi,  200)
             y = torch.sin(coord * freq_inp)
 
-            if freq_inp_int.item() %2 == 1:
-                y_a = y[:100]
-                y_a[y_a>0] = 1
-                y_a[y_a<0] = -1
+            # if freq_inp_int.item() %2 == 1:
+            #     y_a = y[:100]
+            #     y_a[y_a>0] = 1
+            #     y_a[y_a<0] = -1
 
-            else:
-                y_a = y[100:]
-                y_a[y_a>0] = 1
-                y_a[y_a<0] = -1
+            # else:
+            #     y_a = y[100:]
+            #     y_a[y_a>0] = 1
+            #     y_a[y_a<0] = -1
 
         return freq_inp, y.unsqueeze(0)
 
