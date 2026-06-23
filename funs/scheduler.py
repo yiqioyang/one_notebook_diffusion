@@ -68,13 +68,18 @@ def add_noise_from_zero(x0, t, noise_dict, device = 'cpu'):
 
 
 @torch.no_grad()
-def ddpm_sampler(sample_dim, n_sample, noise_dict, model, t_steps = 500, device = 'cpu'):
+def ddpm_sampler(sample_dim, n_sample, noise_dict, model, cond = None, t_steps = 500, device = 'cpu', everystep = False):
     x_t = torch.randn(n_sample,1,sample_dim).to(device)
-
+    
+    if everystep:
+        x_per_frame = []
+        x_per_frame.append(x_t.detach().cpu().clone())
+        
     for i in reversed(range(t_steps)):
         t = torch.full((n_sample,), i)
         t = t.to(device)
-        pred_noise = model(x_t, t, None)
+        pred_noise = model(x_t, t, cond)
+        
         if i > 0:
             post_var = (1 - noise_dict['alpha_hats'][i-1])/(1 - noise_dict['alpha_hats'][i]) * noise_dict['betas'][i]
 
@@ -87,6 +92,12 @@ def ddpm_sampler(sample_dim, n_sample, noise_dict, model, t_steps = 500, device 
         else:
             x_t = mean_t
 
+        if everystep:
+            x_per_frame.append(x_t.detach().cpu().clone())
+
+    if everystep:
+        return x_t, x_per_frame
         
-    return x_t
+    else:
+        return x_t
         

@@ -116,3 +116,12 @@ def animate_forward_noise(
 
     plt.close(fig)
     return anim
+
+
+
+import torch
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+
+
