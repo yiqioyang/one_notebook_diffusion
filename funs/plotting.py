@@ -125,3 +125,69 @@ from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
 
 
+def animate_reverse_process(x_per_frame, figsize=(4, 2), ylim=None):
+    """
+    Simple reverse diffusion animation.
+
+    Input:
+        x_per_frame: list of tensors from sampler (typically each [B, 1, L]).
+        figsize: matplotlib figure size tuple, e.g. (10, 4).
+        ylim: optional tuple (ymin, ymax). If None, limits are auto-computed.
+
+    Output:
+        matplotlib.animation.FuncAnimation
+    """
+    if not isinstance(x_per_frame, list) or len(x_per_frame) == 0:
+        raise ValueError("x_per_frame must be a non-empty list.")
+
+    frames = []
+    for x in x_per_frame:
+        if isinstance(x, torch.Tensor):
+            x = x.detach().cpu()
+        else:
+            x = torch.as_tensor(x)
+
+        if x.ndim == 3:
+            # [B, 1, L] -> [L] using the first sample in batch
+            x = x[0, 0, :]
+        elif x.ndim == 2:
+            # [B, L] -> [L] using the first sample in batch
+            x = x[0, :]
+        elif x.ndim != 1:
+            raise ValueError("Each frame must be shaped like [B, 1, L], [B, L], or [L].")
+
+        frames.append(x)
+
+    frames = torch.stack(frames, dim=0).numpy()
+
+    # Long animations rendered via to_jshtml can be truncated by the default embed limit.
+    # Raise it so all reverse steps (including the final estimate) are included.
+    plt.rcParams["animation.embed_limit"] = max(plt.rcParams.get("animation.embed_limit", 20.0), 100.0)
+
+    fig, ax = plt.subplots(figsize=figsize)
+    x_axis = torch.arange(frames.shape[-1])
+    line, = ax.plot(x_axis, frames[0], color="tab:blue", linewidth=1.8)
+
+    y_min = frames.min().item()
+    y_max = frames.max().item()
+    pad = max(1e-3, 0.1 * (y_max - y_min))
+
+    ax.set_xlim(0, frames.shape[-1] - 1)
+    if ylim is None:
+        ax.set_ylim(y_min - pad, y_max + pad)
+    else:
+        ax.set_ylim(ylim[0], ylim[1])
+    ax.set_xlabel("signal index")
+    ax.set_ylabel("value")
+    ax.set_title(f"Reverse diffusion frame 0/{len(frames) - 1}")
+
+    def update(frame_idx):
+        line.set_ydata(frames[frame_idx])
+        ax.set_title(f"Reverse diffusion frame {frame_idx}/{len(frames) - 1}")
+        return (line,)
+
+    # frames=len(frames) ensures the final estimate (last element) is shown last.
+    anim = FuncAnimation(fig, update, frames=len(frames), interval=50, blit=False, cache_frame_data=False)
+
+    plt.close(fig)
+    return anim
