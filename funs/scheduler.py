@@ -79,14 +79,17 @@ def ddpm_sampler(sample_dim, n_sample, noise_dict, model, cond = None, t_steps =
         t = torch.full((n_sample,), i)
         t = t.to(device)
         pred_noise = model(x_t, t, cond)
-        
+
+        if everystep:
+            temp_x_0_condion_t = (x_t - noise_dict['one_minus_alpha_hats_sqrt'][i] * pred_noise)/noise_dict['alpha_hats_sqrt'][i]
+
         if i > 0:
             post_var = (1 - noise_dict['alpha_hats'][i-1])/(1 - noise_dict['alpha_hats'][i]) * noise_dict['betas'][i]
 
         mean_t = 1/noise_dict['alphas'][i].sqrt() * (x_t - (1 - noise_dict['alphas'][i])/(noise_dict['one_minus_alpha_hats_sqrt'][i]) * pred_noise)
         step_wise_noise = torch.randn(n_sample,1,sample_dim).to(device)
-        
-        
+
+
         if i > 0:
             x_t = mean_t + post_var.sqrt() * step_wise_noise
         else:
@@ -94,7 +97,6 @@ def ddpm_sampler(sample_dim, n_sample, noise_dict, model, cond = None, t_steps =
 
         if everystep:
             x_per_frame.append(x_t.detach().cpu().clone())
-            temp_x_0_condion_t = (x_t - noise_dict['one_minus_alpha_hats_sqrt'][i] * pred_noise)/noise_dict['alpha_hats_sqrt'][i]
             x_0_condition_t.append(temp_x_0_condion_t.detach().cpu().clone())
 
     
