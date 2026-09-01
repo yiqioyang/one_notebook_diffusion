@@ -49,7 +49,7 @@ def add_noise_onestep_cum_sampler(x_0, t, scheduler_dict, no_samples = 1000):
     output = []
     for _ in range(no_samples):
         x = x_0
-        for i in range(t):
+        for i in range(t + 1):
             x = add_noise_onestep(x, i, scheduler_dict)
 
         output.append(x)
