@@ -2,59 +2,24 @@ from torch.utils.data import Dataset
 import torch
 
 class SineWave_DataSet(Dataset):
-    def __init__(self, freq_max = 10):
+    def __init__(self, freq_max = 10, n_dim = 200):
         self.sample_generator = self.data_generating
+        self.n_dim = n_dim
         self.freq_max = freq_max
-        self.sample_generating_given_freq = self.data_generating_given_freq
+        self.n_pts = n_dim
 
     def data_generating(self):
         with torch.no_grad():
-            freq = torch.rand(1) * self.freq_max
-
-            
-            freq_int = torch.floor(freq)
-
-            #freq = freq_int   ###
-            
-            coord = torch.linspace(0, 2 * torch.pi,  200)
+            freq = torch.rand(1) * self.freq_max            
+            coord = torch.linspace(0, 2 * torch.pi,  self.n_dim)
             y = torch.sin(coord * freq)
-
-            # if freq_int.item() %2 == 1:
-            #     y_a = y[:100]
-            #     y_a[y_a>0] = 1
-            #     y_a[y_a<0] = -1
-
-            # else:
-            #     y_a = y[100:]
-            #     y_a[y_a>0] = 1
-            #     y_a[y_a<0] = -1
 
         return freq, y
     
-    def data_generating_given_freq(self, freq_inp):
-        with torch.no_grad():
-            
-            freq_inp_int = torch.floor(freq_inp)
-
-            #freq_inp = freq_inp_int ###
-            
-            coord = torch.linspace(0, 2 * torch.pi,  200)
-            y = torch.sin(coord * freq_inp)
-
-            # if freq_inp_int.item() %2 == 1:
-            #     y_a = y[:100]
-            #     y_a[y_a>0] = 1
-            #     y_a[y_a<0] = -1
-
-            # else:
-            #     y_a = y[100:]
-            #     y_a[y_a>0] = 1
-            #     y_a[y_a<0] = -1
-
-        return freq_inp, y.unsqueeze(0)
-
     def __len__(self):
         return 10000
     
-    def __getitem__(self, index):
+    def __getitem__(self, idx):
+        
         return self.sample_generator()
+        
